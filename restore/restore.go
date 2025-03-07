@@ -370,13 +370,12 @@ func commrestore() {
 
 		// 也要删除没有分区的父表
 		getnullpnamesql := `
-		select autnspname||'.'||autrelname 
-		from gp_toolkit.__gp_user_tables 
-		where autrelkind = 'p' 
-		and (autnspname,autrelname) 
-		not in (select schemaname,tablename from gp_toolkit.gp_partitions
-		union all
-		select partitionschemaname, partitiontablename from gp_toolkit.gp_partitions);
+		SELECT pnp.nspname||'.'||parent.relname AS pname
+		FROM pg_partitioned_table pt 
+		JOIN pg_class parent ON pt.partrelid = parent.oid
+		JOIN pg_namespace pnp on parent.relnamespace = pnp.oid
+		LEFT JOIN pg_inherits i ON i.inhparent = parent.oid
+		WHERE i.inhrelid IS NULL;
 		`
 
 		rows, err := dbconn.Query(getnullpnamesql)
