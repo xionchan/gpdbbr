@@ -604,7 +604,10 @@ func commbackup() {
 		from gp_toolkit.__gp_user_tables 
 		where autrelkind = 'p' 
 		and (autnspname,autrelname) 
-		not in (select schemaname,tablename from gp_toolkit.gp_partitions);
+		not in (
+		select schemaname,tablename from gp_toolkit.gp_partitions
+		union all
+		select partitionschemaname, partitiontablename from gp_toolkit.gp_partitions);
 		`
 
 		rows, err = dbconn.Query(getnullpnamesql)

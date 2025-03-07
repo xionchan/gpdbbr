@@ -357,8 +357,7 @@ func commrestore() {
 	// 开始恢复
 	if RestoreType == "increment" {
 		if len(BkYaml.DataEntries) == 0 && len(BkYaml.DdlSqls) == 0 {
-			cmd.LogInfo("No data need to restore")
-			return
+			cmd.LogInfo("No table data need to restore")
 		}
 		cmd.LogInfo("Droping incremental restore table")
 
@@ -375,7 +374,9 @@ func commrestore() {
 		from gp_toolkit.__gp_user_tables 
 		where autrelkind = 'p' 
 		and (autnspname,autrelname) 
-		not in (select schemaname,tablename from gp_toolkit.gp_partitions);
+		not in (select schemaname,tablename from gp_toolkit.gp_partitions
+		union all
+		select partitionschemaname, partitiontablename from gp_toolkit.gp_partitions);
 		`
 
 		rows, err := dbconn.Query(getnullpnamesql)
