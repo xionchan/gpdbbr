@@ -363,11 +363,20 @@ func commrestore() {
 
 		for _, table := range BkYaml.DataEntries {
 			if _, err := dbconn.Exec(fmt.Sprintf("drop table if exists %s cascade", table.TableName)); err != nil {
-				cmd.LogError("Drop table %s failed: %s", table.TableName, err.Error())
-				os.Exit(1)
+				if pgErr, ok := err.(*pq.Error); ok {
+					if pgErr.Message == fmt.Sprintf(`"%s" is not a table`, strings.Split(table.TableName, ".")[1]) {
+						if _, err := dbconn.Exec(fmt.Sprintf("drop external table if exists %s cascade", table.TableName)); err != nil {
+							cmd.LogError("Drop external table %s failed: %s", table.TableName, err.Error())
+							os.Exit(1)
+						}
+					}
+				} else {
+					cmd.LogError("Drop table %s failed: %s", table.TableName, err.Error())
+					os.Exit(1)
+				}
 			}
 		}
-
+		
 		// 也要删除没有分区的父表
 		getnullpnamesql := `
 		SELECT pnp.nspname||'.'||parent.relname AS pname
